@@ -1,0 +1,25 @@
+stages:
+  - blackduck
+  - coverity
+
+default:
+  tags:
+    - apius
+
+blackduck:
+  image: debian
+  stage: blackduck
+  script:
+    - apt update
+    - apt install curl default-jre -y    
+    - bash <(curl -s -L https://detect.synopsys.com/detect8.sh) --blackduck.url="https://poc274.blackduck.synopsys.com" --blackduck.api.token="$BLACKDUCK_TOKEN" --detect.project.name=python-simple-eval --detect.project.version.name=main --detect.source.path=.
+
+coverity:
+  image: debian
+  stage: coverity
+  before_script: &set-path
+     - export PATH=$PATH:/opt/cov-analysis/bin
+  script:
+    - cov-capture --dir cov-workdir --project-dir . --language python
+    - cov-analyze --dir cov-workdir --all --webapp-security
+    - cov-commit-defects --dir cov-workdir --stream python-simple-eval --user $COVERITY_USERNAME --password $COVERITY_PASSWORD --url https://poc274.coverity.synopsys.com 
